@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#10121c">
+<title>Chess with Mess — ANS Productions</title>
+<style>
+:root{--bg:#10121c;--panel:#1a1d2b;--gold:#e8bd68;--cream:#f0dfbd;--dark:#5a3d35;--text:#f7f2e9;--muted:#a8a8b8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#282b3e 0,#10121c 65%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+header{text-align:center;padding:22px 12px 12px} .brand{font-size:12px;letter-spacing:4px;color:var(--gold);font-weight:800}.title{font-size:clamp(28px,7vw,48px);line-height:1.05;margin:7px 0;font-weight:900;letter-spacing:1px}.title span{color:var(--gold)}.subtitle{color:var(--muted);font-size:13px}
+main{width:min(1100px,100%);margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(250px,.8fr);gap:22px;align-items:start}
+.game-area{perspective:1100px}.board-wrap{padding:12px;border:1px solid #4b4350;border-radius:18px;background:linear-gradient(145deg,#292b3a,#151722);box-shadow:0 24px 60px #0008}
+.board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border:5px solid #6b4d38;border-radius:7px;overflow:hidden;transform:rotateX(3deg);box-shadow:0 16px 24px #0008;touch-action:manipulation}
+.square{display:flex;align-items:center;justify-content:center;position:relative;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(25px,6.5vw,62px);cursor:pointer;user-select:none;line-height:1}
+.light{background:linear-gradient(135deg,#f0dfbd,#d8c19a)}.dark{background:linear-gradient(135deg,#805c4b,#563a32)}
+.piece{filter:drop-shadow(0 3px 2px #0007);transition:transform .12s}.white-piece{color:#fff8e8;text-shadow:0 1px 1px #6b5145,0 0 4px #5e4d43}.black-piece{color:#25232b;text-shadow:0 1px 1px #d0b18c,0 0 2px #000}
+.square.selected{outline:4px solid #f5d45e;outline-offset:-4px;z-index:2}.square.legal:after{content:"";position:absolute;width:25%;height:25%;border-radius:50%;background:#1d352d88}.square.capture:after{content:"";position:absolute;inset:5%;border:4px solid #d33b3988;border-radius:50%}.square.last{box-shadow:inset 0 0 0 100px #e9c35d38}
+.coordinates{position:absolute;font-size:10px;opacity:.7;font-family:system-ui;pointer-events:none}.coord-file{bottom:2px;right:4px}.coord-rank{top:2px;left:4px}
+.status{padding:13px 15px;margin-top:12px;border-radius:12px;background:#242737;border:1px solid #393d50;font-weight:700;display:flex;justify-content:space-between;gap:10px;align-items:center}.status small{color:var(--gold);font-weight:600}
+.panel{display:flex;flex-direction:column;gap:14px}.card{background:linear-gradient(145deg,#202333,#171925);border:1px solid #34384b;border-radius:16px;padding:16px;box-shadow:0 10px 28px #0003}.card h2{font-size:15px;margin:0 0 12px;color:var(--gold);letter-spacing:1px;text-transform:uppercase}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.btn{border:1px solid #4c5065;border-radius:10px;padding:11px 9px;color:var(--text);background:#2a2e40;font-weight:700;cursor:pointer}.btn.primary{background:linear-gradient(135deg,#e8bd68,#b8873d);color:#211a12;border:0}.btn:active{transform:scale(.98)}
+.moves{height:190px;overflow:auto;font-size:13px;color:#dedde7;line-height:1.8}.move-row{display:grid;grid-template-columns:28px 1fr 1fr;padding:2px 5px;border-bottom:1px solid #303346}.move-row:nth-child(odd){background:#ffffff05}.move-no{color:var(--muted)}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.footer{text-align:center;color:#777b8d;font-size:11px;padding:22px 10px 30px;letter-spacing:1px}
+@media(max-width:760px){main{grid-template-columns:1fr;gap:14px}.board-wrap{padding:8px}.board{transform:none}.panel{display:grid;grid-template-columns:1fr 1fr}.panel .card:first-child{grid-column:1/-1}.moves{height:145px}.status{font-size:13px}}
+@media(max-width:420px){.panel{grid-template-columns:1fr}.panel .card:first-child{grid-column:auto}.board{border-width:3px}.square{font-size:10vw}}
+</style>
+  <link rel="manifest" href="./manifest.webmanifest">
+</head>
+<body>
+<header><div class="brand">ANS PRODUCTIONS PRESENTS</div><h1 class="title">CHESS <span>WITH MESS</span></h1><div class="subtitle">Classic chess. Cinematic captures. A little bit of chaos.</div></header>
+<main>
+<section class="game-area">
+  <div class="board-wrap"><div id="board" class="board" aria-label="Chessboard"></div></div>
+  <div class="status"><span id="status">White to move</span><small id="turn">WHITE</small></div>
+</section>
+<aside class="panel">
+  <div class="card"><h2>Game controls</h2><div class="buttons">
+    <button class="btn primary" id="new">New Game</button><button class="btn" id="undo">Undo Move</button>
+    <button class="btn" id="sound">😂 Memes: On</button><button class="btn" id="flip">↻ Flip Board</button>
+  </div><p class="note" style="margin:12px 0 0">Local 2-player mode: take turns on the same device. Tap a piece, then tap its destination. Legal moves are highlighted.</p></div>
+  <div class="card"><h2>Move history</h2><div id="moves" class="moves"><div class="note">Your moves will appear here.</div></div></div>
+  <div class="card"><h2>Chess with Mess</h2><p class="note">Funny Indian meme-style reactions, check alerts, and a goofy victory fanfare are built in. This first playable version uses a stylized 3D-inspired board; we can add character pieces, richer 3D models, and more themes next.</p></div>
+</aside>
+</main>
+<div class="footer">CHESS WITH MESS • ANS PRODUCTIONS • MADE FOR THE LOVE OF THE GAME</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+(() => {
+const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), turnEl=document.getElementById('turn'), movesEl=document.getElementById('moves');
+if(typeof Chess==='undefined'){statusEl.textContent='Please open with internet enabled to load the chess rules.';return;}
+const game=new Chess();
+let selected=null, legal=[], flipped=false, soundOn=true, lastMove=null, audioCtx=null;
+const symbols={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
+function audio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
+function tone(freq,duration,type='sine',gain=.07,delay=0){if(!soundOn)return;try{const c=audio(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,c.currentTime+delay);g.gain.exponentialRampToValueAtTime(gain,c.currentTime+delay+.015);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+delay+duration);o.connect(g);g.connect(c.destination);o.start(c.currentTime+delay);o.stop(c.currentTime+delay+duration+.03)}catch(e){}}
+function memeLine(text){
+ if(!soundOn)return;
+ try{if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='hi-IN';u.rate=1.08;u.pitch=1.18;u.volume=.9;speechSynthesis.speak(u)}}catch(e){}
+}
+function captureSound(capturedPiece){
+ // One distinct Indian meme-style reaction for each captured chess piece.
+ // Chess.js piece codes: p=pawn, n=knight/ghoda, b=bishop/mantri,
+ // r=rook/elephant, q=queen/rani, k=king.
+ const reactions={
+   p:'Pyada gaya, bhai!',
+   n:'Wah kya scene hai!',
+   b:'Oh no!',
+   q:'Tumhari Rani hi Rani! Tumhari Rani hi Rani!',
+   r:'Hathi mere saathi!',
+   k:'Game over, bhai!'
+ };
+ tone(260,.12,'triangle',.11);tone(520,.09,'square',.045,.07);tone(130,.22,'sine',.09,.15);
+ memeLine(reactions[capturedPiece] || 'Arey bhai!');
+}
+function moveSound(){tone(440,.045,'sine',.025)}
+function checkSound(){tone(620,.1,'square',.05);tone(820,.14,'triangle',.05,.1);memeLine('Bach ke rehna!')}
+function winSong(){
+ [392,523,659,784,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.07,i*.15));
+ memeLine('Jit gaye bhai! Kya baat hai!');
+}
+function draw(){
+ boardEl.innerHTML='';const files=flipped?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];const ranks=flipped?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
+ for(let ri=0;ri<8;ri++)for(let fi=0;fi<8;fi++){const sq=files[fi]+ranks[ri],piece=game.get(sq),el=document.createElement('div');el.className='square '+(((fi+ri)%2===0)?'light':'dark');el.dataset.square=sq;
+ if(lastMove&&(lastMove.from===sq||lastMove.to===sq))el.classList.add('last');
+ if(selected===sq)el.classList.add('selected');if(legal.some(m=>m.to===sq))el.classList.add(game.get(sq)?'capture':'legal');
+ if(piece){const span=document.createElement('span');span.className='piece '+(piece.color==='w'?'white-piece':'black-piece');span.textContent=symbols[piece.color+piece.type];el.appendChild(span)}
+ if(fi===0){const c=document.createElement('span');c.className='coordinates coord-rank';c.textContent=ranks[ri];el.appendChild(c)}
+ if(ri===7){const c=document.createElement('span');c.className='coordinates coord-file';c.textContent=files[fi];el.appendChild(c)}
+ el.addEventListener('click',()=>tapSquare(sq));boardEl.appendChild(el)
+ }
+ renderStatus();renderMoves();
+}
+function tapSquare(sq){
+ if(game.game_over())return;
+ const p=game.get(sq);
+ if(selected&&legal.some(m=>m.to===sq)){
+   const move=game.move({from:selected,to:sq,promotion:'q'});if(move){lastMove={from:move.from,to:move.to};selected=null;legal=[];move.captured?captureSound(move.captured):moveSound();if(game.in_check())checkSound();if(game.game_over()){setTimeout(()=>{winSong();statusEl.textContent=game.in_draw()?'Draw game!':'Checkmate — '+(game.turn()==='w'?'Black':'White')+' wins!';},250)}draw();return}
+ }
+ if(p&&p.color===game.turn()){selected=sq;legal=game.moves({square:sq,verbose:true});draw()}else{selected=null;legal=[];draw()}
+}
+function renderStatus(){if(game.in_checkmate())statusEl.textContent='Checkmate!';else if(game.in_draw())statusEl.textContent='Draw game';else if(game.in_check())statusEl.textContent=(game.turn()==='w'?'White':'Black')+' is in check!';else statusEl.textContent=(game.turn()==='w'?'White':'Black')+' to move';turnEl.textContent=game.turn()==='w'?'WHITE':'BLACK'}
+function renderMoves(){const hist=game.history();if(!hist.length){movesEl.innerHTML='<div class="note">Your moves will appear here.</div>';return}let out='';for(let i=0;i<hist.length;i+=2){out+=`<div class="move-row"><span class="move-no">${i/2+1}.</span><span>${hist[i]||''}</span><span>${hist[i+1]||''}</span></div>`}movesEl.innerHTML=out;movesEl.scrollTop=movesEl.scrollHeight}
+document.getElementById('new').onclick=()=>{game.reset();selected=null;legal=[];lastMove=null;draw();tone(440,.1)};
+document.getElementById('undo').onclick=()=>{game.undo();selected=null;legal=[];lastMove=null;draw();tone(330,.08)};
+document.getElementById('sound').onclick=e=>{soundOn=!soundOn;e.currentTarget.textContent=soundOn?'😂 Memes: On':'🔇 Memes: Off';if(soundOn)tone(660,.1)};
+document.getElementById('flip').onclick=()=>{flipped=!flipped;draw()};
+draw();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
